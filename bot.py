@@ -29,6 +29,8 @@ async def help(ctx):
     em.add_field(name='#countries', value='List all the countries we have in our database.', inline=False)
     em.add_field(name='#c_destinations [country name]', value='List the tourist destinations of a specific country.', inline=False)
     em.add_field(name='#weather [city]', value='Show the weather of a city using both Celsius and Fahrenheit.', inline=False)
+    em.add_field(name='#randomc', value='Pick a random country for you!', inline=False)
+    em.add_field(name='#quote', value='Generate a random motivational quote!', inline=False)
     em.add_field(name='#trips', value='See the current trips you have planned.', inline=False)
     em.add_field(name='#addtrip [name (no spaces)] [location] [start date] [end date]', value='Add a new trip to your plan.', inline=False)
     em.add_field(name='#removetrip [name]', value='Remove the trip from your list', inline=False)
@@ -82,6 +84,31 @@ async def weather(ctx, city):
     else:
         await ctx.send("City not found.")
 
+@bot.command(name='randomc')
+async def randomc(ctx):
+    em = discord.Embed(title="Your Random Country",
+                       color=discord.Color.purple())
+    country = random.choice(list(c_dict.countries_dict.keys()))
+    em.add_field(name=f"{country}", value=f"Description: {c_dict.countries_dict[country]['description']}")
+    em.set_thumbnail(url=c_dict.countries_dict[country]["image"])
+    em.set_footer(text=f"Information requested by {ctx.author.name}!")
+    await ctx.send(embed=em)
+
+@bot.command(name='quote')
+async def get_quote(ctx):
+  with open("quotes.txt") as f:
+    numlines = sum(1 for _ in f)
+  target_line = random.choice(range(0, numlines-1, 2))
+  with open("quotes.txt") as f:
+      for _ in range(target_line):
+          next(f)
+      topic = next(f)
+  em = discord.Embed(title="A Random Quote:",
+                     color=discord.Color.purple())
+  em.add_field(name="Quote: ", value=f"{topic}")
+  em.set_footer(text=f"Information requested by {ctx.author.name}!")
+  await ctx.send(embed=em)
+
 @bot.command(name='trips')
 async def trips(ctx):
     user = ctx.author
@@ -91,9 +118,10 @@ async def trips(ctx):
                        color=discord.Color.purple())
 
     for key in users[str(user.id)]:
-        em.add_field(name=key, value=f"Location:{users[str(user.id)][key]['Location']}\nStart date: {users[str(user.id)][key]['start']}\nEnd date:{users[str(user.id)][key]['end']}")
+        em.add_field(name=key, value=f"Location:{str(users[str(user.id)]['Location'])}\nStart date: {str(users[str(user.id)][key]['start'])}\nEnd date:{str(users[str(user.id)][key]['end'])}")
     em.set_footer(text=f"Information requested by {ctx.author.name}!")
     await ctx.send(embed=em)
+    return True
 
 @bot.command(name="addtrip")
 async def addtrip(ctx, name, location, start, end):
@@ -112,6 +140,9 @@ async def addtrip(ctx, name, location, start, end):
     em.add_field(name="Trip added successfully!", value=f"Location:{users[str(user.id)][name]['Location']}\nStart date: {users[str(user.id)][name]['start']}\nEnd date:{users[str(user.id)][name]['end']}")
     em.set_footer(text=f"Information requested by {ctx.author.name}!")
     await ctx.send(embed=em)
+    with open("tripcentral.json", "w") as f:
+        json.dump(users, f)
+    return True
 
 @bot.command(name="removetrip")
 async def removetrip(ctx, name):
@@ -124,6 +155,13 @@ async def removetrip(ctx, name):
     em.add_field(name="Trip added successfully!",
                  value=f"Deleted on {datetime.date}.")
     em.set_footer(text=f"Information requested by {ctx.author.name}!")
+    await ctx.send(embed=em)
+    with open("tripcentral.json", "w") as f:
+        json.dump(users, f)
+    return True
+
+
+
 async def open_account(user):
     users = await get_data()
     users = await get_data()
@@ -136,11 +174,9 @@ async def open_account(user):
     with open("tripcentral.json", 'w') as f:
         json.dump(users, f)
     return True
-
 async def get_data():
     with open("tripcentral.json", 'r') as f:
         users = json.load(f)
     return users
-
 
 bot.run(TOKEN)
