@@ -30,11 +30,12 @@ async def help(ctx):
     em.add_field(name='#c_destinations [country name]', value='List the tourist destinations of a specific country.', inline=False)
     em.add_field(name='#weather [city]', value='Show the weather of a city using both Celsius and Fahrenheit.', inline=False)
     em.add_field(name='#randomc', value='Pick a random country for you!', inline=False)
-    em.add_field(name='#quote', value='Generate a random motivational quote!', inline=False)
+    em.add_field(name='#quote [t or m]', value='Generate a random quote, either travel or motivational!', inline=False)
     em.add_field(name='#trips', value='See the current trips you have planned.', inline=False)
-    em.add_field(name='#addtrip [name (no spaces)] [location] [start date] [end date]', value='Add a new trip to your plan.', inline=False)
+    em.add_field(name='#addtrip [name] [location] [start date] [end date]', value='Add a new trip to your plan.', inline=False)
     em.add_field(name='#removetrip [name]', value='Remove the trip from your list', inline=False)
-    em.set_footer(text=f"Information requested by {ctx.author.name}!")
+    em.add_field(name='Notes', value="Add quotes around any field with spaces in them.", inline=False)
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
     await ctx.send(embed=em)
 
 @bot.command(name='countries')
@@ -43,7 +44,7 @@ async def countries(ctx):
                        color=discord.Color.purple())
     for key in c_dict.countries_dict:
         em.add_field(name=key, value=c_dict.countries_dict[key]["description"], inline=False)
-    em.set_footer(text=f"Information requested by {ctx.author.name}!")
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
     await ctx.send(embed=em)
 
 @bot.command(name='c_destinations')
@@ -54,7 +55,7 @@ async def countries_destinations(ctx, country):
     em = discord.Embed(title="Tourist destinations of " + country,
                        color=discord.Color.purple())
     em.add_field(name="Tourist destinations: ", value=c_dict.countries_dict[country]["tourist destinations"], inline=False)
-    em.set_footer(text=f"Information requested by {ctx.author.name}!")
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
     em.set_thumbnail(url=c_dict.countries_dict[country]["image"])
     await ctx.send(embed=em)
 
@@ -79,7 +80,7 @@ async def weather(ctx, city):
         em.add_field(name="Humidity(%)", value=f"**{ch}%**", inline=False)
         em.add_field(name="Atmospheric Pressure(hPa)", value=f"**{cp}hPa**", inline=False)
         em.set_thumbnail(url="https://i.ibb.co/CMrsxdX/weather.png")
-        em.set_footer(text=f"Information requested by {ctx.author.name}!")
+        em.set_footer(text=f"Information requested by {ctx.author.name}")
         await ctx.send(embed=em)
     else:
         await ctx.send("City not found.")
@@ -91,23 +92,38 @@ async def randomc(ctx):
     country = random.choice(list(c_dict.countries_dict.keys()))
     em.add_field(name=f"{country}", value=f"Description: {c_dict.countries_dict[country]['description']}")
     em.set_thumbnail(url=c_dict.countries_dict[country]["image"])
-    em.set_footer(text=f"Information requested by {ctx.author.name}!")
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
     await ctx.send(embed=em)
 
 @bot.command(name='quote')
-async def get_quote(ctx):
-  with open("quotes.txt") as f:
-    numlines = sum(1 for _ in f)
-  target_line = random.choice(range(0, numlines-1, 2))
-  with open("quotes.txt") as f:
-      for _ in range(target_line):
-          next(f)
-      topic = next(f)
-  em = discord.Embed(title="A Random Quote:",
-                     color=discord.Color.purple())
-  em.add_field(name="Quote: ", value=f"{topic}")
-  em.set_footer(text=f"Information requested by {ctx.author.name}!")
-  await ctx.send(embed=em)
+async def get_quote(ctx, type):
+    if type == 'm':
+        with open("quotes.txt") as f:
+            numlines = sum(1 for _ in f)
+        target_line = random.choice(range(0, numlines-1, 2))
+        with open("quotes.txt") as f:
+            for _ in range(target_line):
+                 next(f)
+            topic = next(f)
+        em = discord.Embed(title="A Motivational Quote:",
+                         color=discord.Color.purple())
+    elif type == 't':
+        with open("travel.txt") as f:
+            numlines = sum(1 for _ in f)
+        target_line = random.choice(range(0, numlines-1, 2))
+        with open("travel.txt") as f:
+            for _ in range(target_line):
+                 next(f)
+            topic = next(f)
+        em = discord.Embed(title="A Travel Quote:",
+                         color=discord.Color.purple())
+    else:
+        em = discord.Embed(title="Invalid Quote Type!:",
+                           color=discord.Color.purple())
+        return
+    em.add_field(name="Quote: ", value=f"{topic}")
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
+    await ctx.send(embed=em)
 
 @bot.command(name='trips')
 async def trips(ctx):
@@ -116,10 +132,12 @@ async def trips(ctx):
     users = await get_data()
     em = discord.Embed(title="Current trips",
                        color=discord.Color.purple())
-
-    for key in users[str(user.id)]:
-        em.add_field(name=key, value=f"Location:{str(users[str(user.id)]['Location'])}\nStart date: {str(users[str(user.id)][key]['start'])}\nEnd date:{str(users[str(user.id)][key]['end'])}")
-    em.set_footer(text=f"Information requested by {ctx.author.name}!")
+    if len(users[str(user.id)]) == 0:
+        em.add_field(name="No trips yet!", value="Add a trip using the #addtrip command!", inline=False)
+    else:
+        for key in users[str(user.id)]:
+            em.add_field(name=key, value=f"Location: {users[str(user.id)][key]['location']}\nStart date: {users[str(user.id)][key]['start']}\nEnd date: {users[str(user.id)][key]['end']}", inline=False)
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
     await ctx.send(embed=em)
     return True
 
@@ -130,18 +148,18 @@ async def addtrip(ctx, name, location, start, end):
     users = await get_data()
 
     users[str(user.id)][name] = {
-        "Location": location,
+        "location": location,
         "start": start,
         "end": end
     }
-    print(users[str(user.id)][name])
     em = discord.Embed(title="Add a trip!",
                        color=discord.Color.purple())
-    em.add_field(name="Trip added successfully!", value=f"Location:{users[str(user.id)][name]['Location']}\nStart date: {users[str(user.id)][name]['start']}\nEnd date:{users[str(user.id)][name]['end']}")
-    em.set_footer(text=f"Information requested by {ctx.author.name}!")
-    await ctx.send(embed=em)
+    em.add_field(name="Trip added successfully!", value=f"Location: {users[str(user.id)][name]['location']}\nStart date: {users[str(user.id)][name]['start']}\nEnd date: {users[str(user.id)][name]['end']}")
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
+
     with open("tripcentral.json", "w") as f:
         json.dump(users, f)
+    await ctx.send(embed=em)
     return True
 
 @bot.command(name="removetrip")
@@ -149,18 +167,16 @@ async def removetrip(ctx, name):
     user = ctx.author
     await open_account(user)
     users = await get_data()
-    del users[str(user.id)][name]
     em = discord.Embed(title="Delete a trip!",
                        color=discord.Color.purple())
-    em.add_field(name="Trip added successfully!",
-                 value=f"Deleted on {datetime.date}.")
-    em.set_footer(text=f"Information requested by {ctx.author.name}!")
+
+    del users[str(user.id)][name]
+    em.add_field(name="Trip removed successfully!", value=f"Deleted on {datetime.date.today()}.")
+    em.set_footer(text=f"Information requested by {ctx.author.name}")
     await ctx.send(embed=em)
     with open("tripcentral.json", "w") as f:
         json.dump(users, f)
     return True
-
-
 
 async def open_account(user):
     users = await get_data()
